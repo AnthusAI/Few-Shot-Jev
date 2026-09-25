@@ -95,7 +95,8 @@ async def run(max_requests, concurrency):
         nonlocal done
         shots, seed, target, demos = item; request_state = state(target, demos); key = digest({"state": request_state, "question": QUESTION}); started = time.perf_counter()
         response = await client.system_one(state=request_state, questions={"emotion": QUESTION})
-        raw = response.answers["emotion"].model_dump().get("root", {})
+        raw = response.answers["emotion"].model_dump()
+        raw = raw.get("root", raw)
         row = {"fingerprint": key, "target_id": target["id"], "actual": target["label"], "shots": shots, "draw_seed": seed,
                "prediction": raw["choice"], "probabilities": raw["probabilities"], "model": response.model,
                "usage": response.usage.model_dump(), "latency_ms": round((time.perf_counter()-started)*1000,2)}
