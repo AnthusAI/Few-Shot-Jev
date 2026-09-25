@@ -14,4 +14,4 @@ def test_a_few_shot_state_separates_target_from_labeled_examples():
     request = state(target, [example])
     assert request["target"]["text"] == "target"
     assert request["labeled_examples"] == [{"text": "example", "label": "Sports"}]
-    assert QUESTION["criteria"] == list(LABELS)
+    assert QUESTION["criteria"] == {label: None for label in LABELS}

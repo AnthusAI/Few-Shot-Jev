@@ -15,8 +15,10 @@ QUESTION = {
         "The labeled_examples are training examples of the intended categories; do not "
         "classify them. Choose exactly one option for target.text."
     ),
-    # The SDK's choice schema calls the option list `criteria`, not `options`.
-    "criteria": list(LABELS),
+    # Choice criteria are a label-keyed mapping in the SDK. `None` means the
+    # label itself is the only supplied definition; examples carry the task
+    # specific information being tested here.
+    "criteria": {label: None for label in LABELS},
 }
 
 
