@@ -31,10 +31,12 @@ def parse_topic_answer(response: Any, latency_ms: float) -> Answer:
     if "topic" not in answers:
         raise ValueError("Jev response did not contain the required topic answer")
     answer = _dict(answers["topic"])
-    if answer.get("value") is None:
-        raise ValueError("Jev topic answer did not contain a value")
+    # SDK 0.7 represents the answer union as a Pydantic RootModel.
+    answer = answer.get("root", answer)
+    if answer.get("choice") is None:
+        raise ValueError("Jev topic answer did not contain a choice")
     probabilities = {str(k): float(v) for k, v in (answer.get("probabilities") or {}).items()}
-    return Answer(str(answer["value"]), probabilities, getattr(response, "model", None),
+    return Answer(str(answer["choice"]), probabilities, getattr(response, "model", None),
                   _dict(response.usage) if getattr(response, "usage", None) else None, latency_ms)
 
 

@@ -31,3 +31,11 @@ def test_a_malformed_live_response_is_rejected_before_caching():
         assert "topic" in str(error)
     else:
         raise AssertionError("malformed response was accepted")
+
+
+def test_an_sdk_root_choice_answer_is_normalized():
+    answer = SimpleNamespace(model_dump=lambda: {"root": {"choice": "World", "probabilities": {"World": 0.8}}})
+    response = SimpleNamespace(answers={"topic": answer}, model="jev-latest", usage=None)
+    parsed = parse_topic_answer(response, 1.0)
+    assert parsed.value == "World"
+    assert parsed.probabilities == {"World": 0.8}
