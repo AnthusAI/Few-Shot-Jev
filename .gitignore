@@ -10,3 +10,4 @@ data/
 results/*.jsonl
 results/*.json
 !results/.gitkeep
+!results/summary.json

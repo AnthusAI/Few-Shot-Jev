@@ -4,7 +4,7 @@
 
 Jev is often used as a zero-shot decision model: provide a piece of text, name the possible outcomes, and receive a typed choice with probabilities. But its state can also contain related labeled records. That makes a simple and useful question testable: **when Jev is given a few examples of a classification task, does it agree with the task's ground truth more often?**
 
-This repository is a deliberately small, preregistered experiment on AG News. It is not a general benchmark and it does not yet claim a result. The article below explains the hypothesis, the measurement, and exactly what we will be allowed to conclude once the frozen run is complete.
+This repository is a deliberately small, preregistered experiment on AG News. It is not a general benchmark. The article below explains the hypothesis, the measurement, and what the completed frozen run does—and does not—show.
 
 ## The hypothesis
 
@@ -66,13 +66,28 @@ The reported 95% interval resamples both test targets and the five example draws
 
 The [preregistration](protocol/PREREGISTRATION.md) fixes these choices before any live Jev request. It makes 4-shot versus zero-shot primary; 8- and 16-shot results remain useful, but cannot be promoted after the fact just because they look better.
 
-## What we can conclude—and what we cannot, yet
+## What we found
 
-**No live Jev responses have been collected for this study.** There is no accuracy table to report and no conclusion that few-shot prompting helps.
+We collected all **32,000** preregistered Jev responses with model version `jev-1.13.0`. The zero-shot baseline classified 1,759 of 2,000 held-out articles correctly: **87.95% accuracy**. Across the five fixed 4-shot example draws, accuracy averaged **88.75%**—an apparent gain of **0.80 percentage points**.
 
-When the run is complete, a positive primary interval will support a narrow claim: on this fixed AG News evaluation, these correctly labeled, balanced training examples improved Jev's agreement with the supplied ground-truth labels. An interval overlapping zero will mean this experiment did not establish a reliable 4-shot gain. A negative result would be evidence that these examples hurt under this design.
+That is not enough to call the hypothesis confirmed. The preregistered hierarchical bootstrap interval for the primary 4-shot-minus-zero-shot accuracy difference is **−0.18 to +1.84 percentage points**. It overlaps zero: these five example draws provide some positive movement, but they do not establish a reliable 4-shot improvement on this scoreboard.
 
-None of those outcomes would prove that few-shot prompting works in general, that examples cause the effect through any particular internal mechanism, or that AG News labels are the right boundary for another team's task. This is a measurement of one model, one request design, and one public classification dataset. Its value is that the claim will be proportionate to the evidence.
+| Condition | Held-out accuracy | Mean Brier | Mean ECE |
+| --- | ---: | ---: | ---: |
+| Zero-shot | 87.95% | .197 | .072 |
+| 4-shot, five-draw mean | 88.75% | .183 | .064 |
+| 8-shot, five-draw mean | 88.76% | .183 | .064 |
+| 16-shot, five-draw mean | 89.04% | .178 | .061 |
+
+The larger-shot rows are secondary analyses, not replacements for the predeclared primary comparison. They are directionally better on average, but also vary materially by example draw: 16-shot accuracy ranges from 87.95% to 90.15%. This is a useful warning against saying simply that “few-shot helps.” Which examples are supplied matters.
+
+The checked-in [aggregate summary](results/summary.json) contains every condition’s accuracy, macro-F1, recall, calibration, latency, and token totals; the per-request cache remains local and contains no article text.
+
+## What we can conclude—and what we cannot
+
+On this fixed AG News evaluation, the selected training examples yielded a small average accuracy improvement, with better average Brier and calibration scores, but the primary interval does not rule out no 4-shot effect. The honest conclusion is therefore **inconclusive rather than positive**.
+
+This result does not prove that few-shot prompting works in general, that examples cause the effect through any particular internal mechanism, or that AG News labels are the right boundary for another team's task. It is a measurement of one model, one request design, and one public classification dataset. Its value is that the claim remains proportionate to the evidence.
 
 ## Reproduce the investigation
 
@@ -93,7 +108,7 @@ MAX_REQUESTS=32000 make run
 make report
 ```
 
-The report writes aggregate metrics to `results/report.json`; live response rows remain local and ignored by Git. See the frozen [protocol](protocol/PREREGISTRATION.md) for the complete rules.
+The report writes aggregate metrics to `results/summary.json`; live response rows remain local and ignored by Git. See the frozen [protocol](protocol/PREREGISTRATION.md) for the complete rules.
 
 ## License and data
 

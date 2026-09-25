@@ -100,7 +100,9 @@ def report() -> None:
     if zero and four:
         interval = hierarchical_accuracy_delta(zero, four)
         output["primary_0_vs_4_accuracy_delta"] = interval.__dict__
-    destination = ROOT / "results" / "report.json"
+    # This aggregate, text-free report is the published study artifact. The
+    # per-request response cache remains ignored and local.
+    destination = ROOT / "results" / "summary.json"
     destination.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"wrote {destination.relative_to(ROOT)}")
 
