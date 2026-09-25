@@ -53,7 +53,7 @@ def preflight() -> None:
     print("No Jev request was made. Run `jev-agnews prepare-manifest` before committing a release manifest.")
 
 
-async def live_run(max_requests: int) -> None:
+async def live_run(max_requests: int, concurrency: int) -> None:
     scoreboard, draws = selection()
     plan = list(request_plan(scoreboard, draws))
     if max_requests < len(plan):
@@ -64,15 +64,25 @@ async def live_run(max_requests: int) -> None:
     if len(pending) > max_requests:
         raise SystemExit(f"{len(pending)} uncached requests exceed the approved maximum of {max_requests}.")
     print(f"{len(plan)} planned; {len(plan) - len(pending)} cached; {len(pending)} live requests to send.")
-    for index, (shots, draw_seed, target, examples) in enumerate(pending, 1):
+    completed = 0
+    lock = asyncio.Lock()
+
+    async def one(entry) -> None:
+        nonlocal completed
+        shots, draw_seed, target, examples = entry
         key = fingerprint(target, examples)
         answer = await client.classify(state(target, examples))
         cache.append({"fingerprint": key, "target_id": target.manifest_id, "actual": target.label,
                       "shots": shots, "draw_seed": draw_seed, "prediction": answer.value,
                       "probabilities": answer.probabilities, "model": answer.model,
                       "usage": answer.usage, "latency_ms": answer.latency_ms})
-        if index % 100 == 0 or index == len(pending):
-            print(f"{index}/{len(pending)}")
+        async with lock:
+            completed += 1
+            if completed % 100 == 0 or completed == len(pending):
+                print(f"{completed}/{len(pending)}", flush=True)
+
+    for start in range(0, len(pending), concurrency):
+        await asyncio.gather(*(one(entry) for entry in pending[start:start + concurrency]))
 
 
 def report() -> None:
@@ -103,6 +113,7 @@ def main(argv=None) -> None:
     run = sub.add_parser("run", help="execute only with explicit approval")
     run.add_argument("--approve", action="store_true", help="acknowledge paid API use")
     run.add_argument("--max-requests", type=int, required=True)
+    run.add_argument("--concurrency", type=int, default=16)
     sub.add_parser("report", help="summarize a completed response cache")
     args = parser.parse_args(argv)
     if args.command == "prepare-manifest":
@@ -114,6 +125,8 @@ def main(argv=None) -> None:
             raise SystemExit("Live calls require --approve after inspecting preflight output.")
         from dotenv import load_dotenv
         load_dotenv()
-        asyncio.run(live_run(args.max_requests))
+        if args.concurrency < 1:
+            raise SystemExit("--concurrency must be positive")
+        asyncio.run(live_run(args.max_requests, args.concurrency))
     else:
         report()
