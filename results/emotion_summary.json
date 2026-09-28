@@ -1,0 +1,34 @@
+{
+  "conditions": {
+    "0-shot": {
+      "accuracy": 0.5935,
+      "brier": 0.6603771,
+      "macro_f1": 0.5001867607202051
+    },
+    "12-shot_mean": {
+      "accuracy": 0.5948,
+      "brier": 0.622427,
+      "macro_f1": 0.5255196018878135
+    },
+    "24-shot_mean": {
+      "accuracy": 0.6023,
+      "brier": 0.61187127,
+      "macro_f1": 0.5388455326904475
+    },
+    "6-shot_mean": {
+      "accuracy": 0.5946,
+      "brier": 0.62923283,
+      "macro_f1": 0.5212853690544708
+    }
+  },
+  "dataset": "dair-ai/emotion",
+  "dataset_revision": "cab853a1dbdf4c42c2b3ef2173804746df8825fe",
+  "model": "jev-1.13.0",
+  "primary_0_vs_6_accuracy_delta": {
+    "estimate": 0.0011,
+    "high": 0.0128,
+    "low": -0.0115
+  },
+  "requests": 32000,
+  "test_n": 2000
+}

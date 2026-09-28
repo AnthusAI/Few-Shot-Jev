@@ -89,6 +89,30 @@ On this fixed AG News evaluation, the selected training examples yielded a small
 
 This result does not prove that few-shot prompting works in general, that examples cause the effect through any particular internal mechanism, or that AG News labels are the right boundary for another team's task. It is a measurement of one model, one request design, and one public classification dataset. Its value is that the claim remains proportionate to the evidence.
 
+## Does a different dataset change the answer?
+
+We then ran the same frozen ladder on
+[`dair-ai/emotion`](https://huggingface.co/datasets/dair-ai/emotion): six
+emotion labels and its complete, naturally imbalanced 2,000-item official test
+split. The primary comparison is 6-shot versus zero-shot—one training example
+per emotion label—with five fixed example draws.
+
+Again, the accuracy result is inconclusive. Zero-shot accuracy was **59.35%**;
+the 6-shot mean was **59.46%**, a **+0.11-point** change. Its hierarchical 95%
+interval was **−1.15 to +1.28 points**. That does not establish an accuracy
+gain.
+
+But the supporting measurements moved more clearly: macro-F1 rose from .500 to
+.521 and multiclass Brier improved from .660 to .629. At 24 shots, secondary
+accuracy reached 60.23%, macro-F1 .539, and Brier .612. The full
+[Emotion aggregate](results/emotion_summary.json) records the result.
+
+So the two datasets tell a narrower story than “few-shot helps”: few examples
+did not produce a reliable primary accuracy gain on either task, but they did
+consistently improve probability quality and, on Emotion, class-balanced
+performance. The next useful experiment remains ordering sensitivity on a
+fixed example set, before extending the comparison to another model.
+
 ## Reproduce the investigation
 
 The tests use only local synthetic data and a fake client; they make no network or model calls.

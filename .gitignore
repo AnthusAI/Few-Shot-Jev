@@ -11,3 +11,4 @@ results/*.jsonl
 results/*.json
 !results/.gitkeep
 !results/summary.json
+!results/emotion_summary.json
