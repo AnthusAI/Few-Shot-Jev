@@ -12,3 +12,4 @@ results/*.json
 !results/.gitkeep
 !results/summary.json
 !results/emotion_summary.json
+!results/emotion_large_context_summary.json
