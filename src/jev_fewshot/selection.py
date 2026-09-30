@@ -12,6 +12,7 @@ from typing import Iterable
 
 TOKEN = re.compile(r"[a-z]+")
 _GROUPS: dict[int, dict[str, list[dict]]] = {}
+_RETRIEVAL_INDEX: dict[int, dict[str, tuple[list[dict], dict[str, list[int]], list[int]]]] = {}
 
 
 @lru_cache(maxsize=None)
@@ -57,14 +58,35 @@ def prototype_balanced(candidate: list[dict], labels: tuple[str, ...], *, per_la
 def retrieved_balanced(target: dict, candidate: list[dict], labels: tuple[str, ...], *, per_label: int) -> list[dict]:
     """Return the lexical nearest candidates per label, using no target label."""
     target_tokens = tokens(target["text"])
-    groups = _GROUPS.setdefault(id(candidate), {label: [row for row in candidate if row["label"] == label]
-                                                 for label in labels})
+    candidate_id = id(candidate)
+    groups = _GROUPS.setdefault(candidate_id, {label: [row for row in candidate if row["label"] == label]
+                                               for label in labels})
+    if candidate_id not in _RETRIEVAL_INDEX:
+        indexed = {}
+        for label, group in groups.items():
+            inverted: dict[str, list[int]] = {}
+            lengths = []
+            for index, row in enumerate(group):
+                row_tokens = tokens(row["text"])
+                lengths.append(len(row_tokens))
+                for token in row_tokens:
+                    inverted.setdefault(token, []).append(index)
+            indexed[label] = group, inverted, lengths
+        _RETRIEVAL_INDEX[candidate_id] = indexed
     output = []
     for label in labels:
-        def score(row: dict):
-            row_tokens = tokens(row["text"])
-            overlap = len(target_tokens.intersection(row_tokens))
-            similarity = overlap / math.sqrt(max(1, len(target_tokens)) * max(1, len(row_tokens)))
-            return similarity, row["id"]
-        output.extend(nlargest(per_label, groups[label], key=score))
+        group, inverted, lengths = _RETRIEVAL_INDEX[candidate_id][label]
+        overlaps: Counter[int] = Counter(index for token in target_tokens for index in inverted.get(token, ()))
+        # A positive overlap always outranks a zero overlap.  Include the
+        # deterministic ID tie-break only when unusually short targets need
+        # zero-overlap fillers.
+        ranked = nlargest(per_label, overlaps,
+                          key=lambda index: (overlaps[index] / math.sqrt(max(1, len(target_tokens)) * max(1, lengths[index])),
+                                             group[index]["id"]))
+        if len(ranked) < per_label:
+            positive = set(overlaps)
+            ranked.extend(nlargest(per_label - len(ranked),
+                                   (index for index in range(len(group)) if index not in positive),
+                                   key=lambda index: group[index]["id"]))
+        output.extend(group[index] for index in ranked)
     return output

@@ -23,6 +23,7 @@ REVISION = "cab853a1dbdf4c42c2b3ef2173804746df8825fe"
 LABELS = ("sadness", "joy", "love", "anger", "fear", "surprise")
 SCOREBOARD_COUNTS = {"sadness": 583, "joy": 670, "love": 163, "anger": 270, "fear": 242, "surprise": 72}
 SEEDS = tuple(range(5)); PER_LABEL = 16
+TOTAL_RECORDS = 19000
 QUESTION = {"type": "choice", "instructions": "Classify only target.text into its primary emotion. labeled_examples are training examples of the intended categories; do not classify them.", "criteria": {label: None for label in LABELS}}
 
 
@@ -108,9 +109,11 @@ def report():
 
 
 async def run(max_requests, concurrency):
-    cache=read_cache(); planned=list(requests()); pending=[item for item in planned if digest({"state":state(item[2],item[3]),"question":QUESTION}) not in cache]
-    if len(pending)>max_requests: raise SystemExit(f"{len(pending)} unique requests remain; max is {max_requests}")
-    print(f"{len(planned)} analysis records; {len(cache)} cached states; {len(pending)} to send.")
+    cache=read_cache()
+    # Cache states can be shared by byte-identical targets.  This conservative
+    # ceiling check may overestimate resumed work by only those duplicates.
+    if TOTAL_RECORDS-len(cache)>max_requests: raise SystemExit(f"up to {TOTAL_RECORDS-len(cache)} requests remain; max is {max_requests}")
+    print(f"{TOTAL_RECORDS} analysis records; {len(cache)} cached states; streaming remaining requests.")
     client=AsyncTypeSafeClient(retry=RetryPolicy(max_retries=6,backoff_max=30.)); lock=asyncio.Lock(); done=0; cache_path().parent.mkdir(exist_ok=True)
     async def one(item):
         nonlocal done
@@ -120,16 +123,23 @@ async def run(max_requests, concurrency):
         async with lock:
             with cache_path().open("a") as out: out.write(json.dumps(row,sort_keys=True)+"\n")
             done+=1
-            if done%100==0 or done==len(pending): print(f"{done}/{len(pending)}",flush=True)
-    for start in range(0,len(pending),concurrency): await asyncio.gather(*(one(item) for item in pending[start:start+concurrency]))
+            if done%100==0: print(f"{done} new responses",flush=True)
+    batch=[]
+    for item in requests():
+        key=digest({"state":state(item[2],item[3]),"question":QUESTION})
+        if key in cache: continue
+        batch.append(item)
+        if len(batch)==concurrency:
+            await asyncio.gather(*(one(current) for current in batch)); batch=[]
+    if batch: await asyncio.gather(*(one(current) for current in batch))
+    print(f"completed {done} new responses",flush=True)
 
 
 def main():
     parser=argparse.ArgumentParser(); parser.add_argument("command",choices=("manifest","preflight","run","report")); parser.add_argument("--approve",action="store_true"); parser.add_argument("--max-requests",type=int,default=19000); parser.add_argument("--concurrency",type=int,default=8); args=parser.parse_args()
     if args.command=="manifest": write_manifest(); return
     if args.command=="report": report(); return
-    planned=list(requests())
-    if args.command=="preflight": print(json.dumps({"dataset_revision":REVISION,"analysis_records":len(planned),"expected_unique_request_ceiling":19000,"network_calls":0},indent=2)); return
+    if args.command=="preflight": print(json.dumps({"dataset_revision":REVISION,"analysis_records":TOTAL_RECORDS,"expected_unique_request_ceiling":TOTAL_RECORDS,"network_calls":0},indent=2)); return
     if not args.approve: raise SystemExit("Live calls require --approve")
     load_dotenv(ROOT/".env"); asyncio.run(run(args.max_requests,args.concurrency))
 
