@@ -1,4 +1,4 @@
-.PHONY: install test preflight run report emotion-large-preflight emotion-large-run emotion-large-report
+.PHONY: install test preflight run report emotion-large-preflight emotion-large-run emotion-large-report emotion-selection-preflight emotion-selection-run emotion-selection-report
 
 install:
 	python3 -m venv .venv
@@ -28,3 +28,13 @@ emotion-large-run:
 
 emotion-large-report:
 	.venv/bin/python scripts/emotion_large_context_study.py report
+
+emotion-selection-preflight:
+	.venv/bin/python scripts/emotion_selection_study.py preflight
+
+emotion-selection-run:
+	@test -n "$(MAX_REQUESTS)" || (echo "Set MAX_REQUESTS after inspecting emotion-selection-preflight."; exit 2)
+	.venv/bin/python scripts/emotion_selection_study.py run --approve --max-requests $(MAX_REQUESTS)
+
+emotion-selection-report:
+	.venv/bin/python scripts/emotion_selection_study.py report

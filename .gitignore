@@ -13,3 +13,4 @@ results/*.json
 !results/summary.json
 !results/emotion_summary.json
 !results/emotion_large_context_summary.json
+!results/emotion_selection_summary.json
