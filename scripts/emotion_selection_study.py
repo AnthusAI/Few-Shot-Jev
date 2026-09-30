@@ -88,6 +88,38 @@ def metrics(rows):
     return {"n":len(rows), "accuracy":sum(r["actual"]==r["prediction"] for r in rows)/len(rows), "macro_f1":macro_f1(rows), "brier":sum(sum((float(r["probabilities"].get(label,0))-float(r["actual"]==label))**2 for label in LABELS) for r in rows)/len(rows), "recall":{label:sum(r["actual"]==label and r["prediction"]==label for r in rows)/sum(r["actual"]==label for r in rows) for label in LABELS}, "mean_latency_ms":sum(r["latency_ms"] for r in rows)/len(rows), "input_tokens":sum(x.get("input_tokens") or 0 for x in usage), "output_tokens":sum(x.get("output_tokens") or 0 for x in usage)}
 
 
+def paired_bootstrap_against_random(selector_rows, random_rows_by_seed, *, resamples=2000, seed=20260930):
+    """Target-resampling interval for selector macro-F1 minus random mean macro-F1."""
+    selector = {row["target_id"]: row for row in selector_rows}
+    random_by_seed = {name: {row["target_id"]: row for row in rows}
+                      for name, rows in random_rows_by_seed.items()}
+    target_ids = sorted(set(selector).intersection(*(set(rows) for rows in random_by_seed.values())))
+    label_index = {label: index for index, label in enumerate(LABELS)}
+    actual = [label_index[selector[target]["actual"]] for target in target_ids]
+    predictions = {"selector": [label_index[selector[target]["prediction"]] for target in target_ids]}
+    predictions.update({name: [label_index[rows[target]["prediction"]] for target in target_ids]
+                        for name, rows in random_by_seed.items()})
+
+    def score(prediction, counts):
+        matrix = [[0] * len(LABELS) for _ in LABELS]
+        for index, repetitions in counts.items(): matrix[actual[index]][prediction[index]] += repetitions
+        values=[]
+        for label in range(len(LABELS)):
+            tp=matrix[label][label]; fp=sum(matrix[row][label] for row in range(len(LABELS)) if row != label); fn=sum(matrix[label][column] for column in range(len(LABELS)) if column != label)
+            values.append(2*tp/(2*tp+fp+fn) if 2*tp+fp+fn else 0.)
+        return sum(values)/len(values)
+
+    def difference(counts):
+        selected=score(predictions["selector"],counts)
+        random_mean=sum(score(predictions[name],counts) for name in random_by_seed)/len(random_by_seed)
+        return selected-random_mean
+
+    estimate=difference(Counter(range(len(target_ids))))
+    rng=random.Random(seed)
+    values=sorted(difference(Counter(rng.randrange(len(target_ids)) for _ in target_ids)) for _ in range(resamples))
+    return {"estimate":estimate,"low":values[int(.025*resamples)],"high":values[int(.975*resamples)],"resamples":resamples,"seed":seed}
+
+
 def materialized_rows():
     cache=read_cache(); output=[]; keys=set()
     for split, method, target, examples in requests():
@@ -104,7 +136,8 @@ def report():
     winner=max(dev, key=lambda name: (dev[name]["macro_f1"], name))
     score={name:metrics(by[("scoreboard",name)]) for name in sorted(name for split,name in by if split=="scoreboard")}
     random_mean=sum(score[f"random-{seed}"]["macro_f1"] for seed in SEEDS)/len(SEEDS)
-    output={"dataset":"dair-ai/emotion", "dataset_revision":REVISION, "candidate_split":"train remainder", "scoreboard_n":2000, "analysis_records":len(rows), "unique_model_states":unique_states, "development":{"scores":dev,"selected_global_context":winner}, "scoreboard":score, "comparisons":{"random_macro_f1_mean":random_mean,"prototype_minus_random":score["prototype"]["macro_f1"]-random_mean,"retrieval_minus_random":score["retrieval"]["macro_f1"]-random_mean,"development_selected_minus_random":score[winner]["macro_f1"]-random_mean}}
+    random_rows={f"random-{seed}":by[("scoreboard",f"random-{seed}")] for seed in SEEDS}
+    output={"dataset":"dair-ai/emotion", "dataset_revision":REVISION, "candidate_split":"train remainder", "scoreboard_n":2000, "analysis_records":len(rows), "unique_model_states":unique_states, "development":{"scores":dev,"selected_global_context":winner}, "scoreboard":score, "comparisons":{"random_macro_f1_mean":random_mean,"prototype_minus_random":score["prototype"]["macro_f1"]-random_mean,"retrieval_minus_random":score["retrieval"]["macro_f1"]-random_mean,"development_selected_minus_random":score[winner]["macro_f1"]-random_mean,"prototype_paired_bootstrap":paired_bootstrap_against_random(by[("scoreboard","prototype")],random_rows),"retrieval_paired_bootstrap":paired_bootstrap_against_random(by[("scoreboard","retrieval")],random_rows),"development_selected_paired_bootstrap":paired_bootstrap_against_random(by[("scoreboard",winner)],random_rows)}}
     summary_path().write_text(json.dumps(output,indent=2,sort_keys=True)+"\n"); print(json.dumps(output["comparisons"],indent=2))
 
 

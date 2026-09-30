@@ -1,0 +1,263 @@
+{
+  "analysis_records": 19000,
+  "candidate_split": "train remainder",
+  "comparisons": {
+    "development_selected_minus_random": -0.007369490223844699,
+    "development_selected_paired_bootstrap": {
+      "estimate": -0.007369490223844699,
+      "high": 0.003891227220396254,
+      "low": -0.01820214715192392,
+      "resamples": 2000,
+      "seed": 20260930
+    },
+    "prototype_minus_random": -0.001145867783203136,
+    "prototype_paired_bootstrap": {
+      "estimate": -0.001145867783203136,
+      "high": 0.01313085628369881,
+      "low": -0.015728322919086213,
+      "resamples": 2000,
+      "seed": 20260930
+    },
+    "random_macro_f1_mean": 0.569000468291384,
+    "retrieval_minus_random": 0.12736929763437022,
+    "retrieval_paired_bootstrap": {
+      "estimate": 0.12736929763437022,
+      "high": 0.14738811958317755,
+      "low": 0.10708537825276032,
+      "resamples": 2000,
+      "seed": 20260930
+    }
+  },
+  "dataset": "dair-ai/emotion",
+  "dataset_revision": "cab853a1dbdf4c42c2b3ef2173804746df8825fe",
+  "development": {
+    "scores": {
+      "random-0": {
+        "accuracy": 0.6483333333333333,
+        "brier": 0.5456696666666666,
+        "input_tokens": 2490174,
+        "macro_f1": 0.6526811361701942,
+        "mean_latency_ms": 217.07418333333334,
+        "n": 600,
+        "output_tokens": 36816,
+        "recall": {
+          "anger": 0.6,
+          "fear": 0.65,
+          "joy": 0.7,
+          "love": 0.58,
+          "sadness": 0.66,
+          "surprise": 0.7
+        }
+      },
+      "random-1": {
+        "accuracy": 0.6333333333333333,
+        "brier": 0.587225,
+        "input_tokens": 2415774,
+        "macro_f1": 0.6365023332277241,
+        "mean_latency_ms": 217.7605,
+        "n": 600,
+        "output_tokens": 36818,
+        "recall": {
+          "anger": 0.6,
+          "fear": 0.69,
+          "joy": 0.67,
+          "love": 0.48,
+          "sadness": 0.69,
+          "surprise": 0.67
+        }
+      },
+      "random-2": {
+        "accuracy": 0.6133333333333333,
+        "brier": 0.5914743333333333,
+        "input_tokens": 2475774,
+        "macro_f1": 0.6162058116208481,
+        "mean_latency_ms": 231.47626666666667,
+        "n": 600,
+        "output_tokens": 36830,
+        "recall": {
+          "anger": 0.55,
+          "fear": 0.63,
+          "joy": 0.73,
+          "love": 0.41,
+          "sadness": 0.69,
+          "surprise": 0.67
+        }
+      },
+      "random-3": {
+        "accuracy": 0.6416666666666667,
+        "brier": 0.5594131666666666,
+        "input_tokens": 2371974,
+        "macro_f1": 0.6463294161657911,
+        "mean_latency_ms": 214.8895,
+        "n": 600,
+        "output_tokens": 36817,
+        "recall": {
+          "anger": 0.58,
+          "fear": 0.7,
+          "joy": 0.7,
+          "love": 0.5,
+          "sadness": 0.7,
+          "surprise": 0.67
+        }
+      },
+      "random-4": {
+        "accuracy": 0.6433333333333333,
+        "brier": 0.557419,
+        "input_tokens": 2410974,
+        "macro_f1": 0.6468404020693409,
+        "mean_latency_ms": 215.06691666666666,
+        "n": 600,
+        "output_tokens": 36801,
+        "recall": {
+          "anger": 0.61,
+          "fear": 0.71,
+          "joy": 0.7,
+          "love": 0.55,
+          "sadness": 0.66,
+          "surprise": 0.63
+        }
+      }
+    },
+    "selected_global_context": "random-0"
+  },
+  "scoreboard": {
+    "prototype": {
+      "accuracy": 0.628,
+      "brier": 0.57609935,
+      "input_tokens": 4928084,
+      "macro_f1": 0.5678546005081808,
+      "mean_latency_ms": 198.044315,
+      "n": 2000,
+      "output_tokens": 122814,
+      "recall": {
+        "anger": 0.5962962962962963,
+        "fear": 0.6157024793388429,
+        "joy": 0.5895522388059702,
+        "love": 0.4294478527607362,
+        "sadness": 0.7530017152658662,
+        "surprise": 0.5833333333333334
+      }
+    },
+    "random-0": {
+      "accuracy": 0.618,
+      "brier": 0.5920575,
+      "input_tokens": 8300084,
+      "macro_f1": 0.5616309780675393,
+      "mean_latency_ms": 217.08679500000002,
+      "n": 2000,
+      "output_tokens": 122803,
+      "recall": {
+        "anger": 0.562962962962963,
+        "fear": 0.5495867768595041,
+        "joy": 0.6104477611940299,
+        "love": 0.4171779141104294,
+        "sadness": 0.7324185248713551,
+        "surprise": 0.6527777777777778
+      }
+    },
+    "random-1": {
+      "accuracy": 0.628,
+      "brier": 0.5818203,
+      "input_tokens": 8052084,
+      "macro_f1": 0.5649083538834732,
+      "mean_latency_ms": 214.02898000000002,
+      "n": 2000,
+      "output_tokens": 122784,
+      "recall": {
+        "anger": 0.5925925925925926,
+        "fear": 0.6198347107438017,
+        "joy": 0.6119402985074627,
+        "love": 0.4049079754601227,
+        "sadness": 0.7427101200686106,
+        "surprise": 0.5138888888888888
+      }
+    },
+    "random-2": {
+      "accuracy": 0.624,
+      "brier": 0.5786338,
+      "input_tokens": 8252084,
+      "macro_f1": 0.5595799755189291,
+      "mean_latency_ms": 217.21917499999998,
+      "n": 2000,
+      "output_tokens": 122842,
+      "recall": {
+        "anger": 0.5703703703703704,
+        "fear": 0.5413223140495868,
+        "joy": 0.6208955223880597,
+        "love": 0.3006134969325153,
+        "sadness": 0.7753001715265866,
+        "surprise": 0.6388888888888888
+      }
+    },
+    "random-3": {
+      "accuracy": 0.636,
+      "brier": 0.56719585,
+      "input_tokens": 7906084,
+      "macro_f1": 0.5796454960244106,
+      "mean_latency_ms": 217.74823,
+      "n": 2000,
+      "output_tokens": 122826,
+      "recall": {
+        "anger": 0.6037037037037037,
+        "fear": 0.6322314049586777,
+        "joy": 0.5925373134328358,
+        "love": 0.3619631901840491,
+        "sadness": 0.7838765008576329,
+        "surprise": 0.5972222222222222
+      }
+    },
+    "random-4": {
+      "accuracy": 0.6375,
+      "brier": 0.57416125,
+      "input_tokens": 8036084,
+      "macro_f1": 0.5792375379625675,
+      "mean_latency_ms": 219.50508499999998,
+      "n": 2000,
+      "output_tokens": 122755,
+      "recall": {
+        "anger": 0.6148148148148148,
+        "fear": 0.6198347107438017,
+        "joy": 0.6194029850746269,
+        "love": 0.43558282208588955,
+        "sadness": 0.7444253859348199,
+        "surprise": 0.5416666666666666
+      }
+    },
+    "retrieval": {
+      "accuracy": 0.7385,
+      "brier": 0.38369155,
+      "input_tokens": 6834432,
+      "macro_f1": 0.6963697659257542,
+      "mean_latency_ms": 207.981945,
+      "n": 2000,
+      "output_tokens": 122740,
+      "recall": {
+        "anger": 0.7962962962962963,
+        "fear": 0.7148760330578512,
+        "joy": 0.6940298507462687,
+        "love": 0.5828220858895705,
+        "sadness": 0.8250428816466552,
+        "surprise": 0.6666666666666666
+      }
+    },
+    "zero": {
+      "accuracy": 0.59,
+      "brier": 0.67033015,
+      "input_tokens": 752084,
+      "macro_f1": 0.5055119544710621,
+      "mean_latency_ms": 185.03024,
+      "n": 2000,
+      "output_tokens": 122828,
+      "recall": {
+        "anger": 0.5074074074074074,
+        "fear": 0.5041322314049587,
+        "joy": 0.6328358208955224,
+        "love": 0.2147239263803681,
+        "sadness": 0.7478559176672385,
+        "surprise": 0.3611111111111111
+      }
+    }
+  },
+  "scoreboard_n": 2000,
+  "unique_model_states": 18992
+}

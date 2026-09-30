@@ -222,9 +222,40 @@ tested to send the identical Jev question and state shape. See DSPy's
 [KNNFewShot API](https://dspy.ai/3.0.2/api/optimizers/KNNFewShot/) for the
 corresponding LLM-side mechanisms.
 
-This note is a proposed experiment, not a result. We should freeze its split,
-budget, selection candidates, and primary contrast before sending another live
-request.
+### Result: target-specific selection beats a random fixed context here
+
+We froze and completed that study with the original Emotion training split
+partitioned into a candidate pool, a 600-item selector-development set, and a
+new 2,000-item scoreboard. Neither official Emotion evaluation split was used.
+All few-shot conditions used exactly **96 demonstrations** (16 per label), with
+identical Jev wording, label order, and target set. The five random fixed
+contexts provide the comparison distribution.
+
+| 96-example method | Scoreboard accuracy | Scoreboard macro-F1 | Change from random macro-F1 mean |
+| --- | ---: | ---: | ---: |
+| Random fixed context, five-draw mean | 62.87% | .569 | — |
+| Lexical class prototype | 62.80% | .568 | −.11 points |
+| Development-selected random fixed context | 61.80% | .562 | −.74 points |
+| Per-label lexical retrieval for each target | **73.85%** | **.696** | **+12.74 points** |
+
+The paired target-bootstrap 95% interval for retrieval minus the random-draw
+macro-F1 mean is **+10.71 to +14.74 points**. By contrast, the prototype
+interval is −1.57 to +1.31 points and the development-selected fixed context
+interval is −1.82 to +.39 points. The small development selection did not
+transfer: `random-0` won development macro-F1 (.653) but scored .562 on the
+untouched scoreboard, below the random-context mean.
+
+So the answer is now more specific than our earlier conjecture. At a fixed
+context budget, **choosing examples relevant to the particular target can be
+substantially more effective than selecting one supposedly good global set**.
+The evidence does not endorse every selector: the transparent global prototype
+heuristic did not help, and selecting the apparent winner on 600 development
+items did not produce a reliable improvement. This result is also not a claim
+that lexical retrieval is the best possible selector, that DSPy itself was
+tested, or that the improvement generalizes beyond this dataset and request
+design. The [selection aggregate](results/emotion_selection_summary.json)
+includes each draw, selector-development result, usage, latency, recall, and
+the bootstrap intervals.
 
 ## Reproduce the investigation
 
