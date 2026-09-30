@@ -107,11 +107,58 @@ But the supporting measurements moved more clearly: macro-F1 rose from .500 to
 accuracy reached 60.23%, macro-F1 .539, and Brier .612. The full
 [Emotion aggregate](results/emotion_summary.json) records the result.
 
-So the two datasets tell a narrower story than “few-shot helps”: few examples
+So the two datasets told a narrower story than “few-shot helps”: few examples
 did not produce a reliable primary accuracy gain on either task, but they did
 consistently improve probability quality and, on Emotion, class-balanced
-performance. The next useful experiment remains ordering sensitivity on a
-fixed example set, before extending the comparison to another model.
+performance. That result motivated a different, preregistered question: can
+**many** examples move a classifier whose zero-shot alignment is modest?
+
+## Does a lot of context change the boundary?
+
+The small-context experiment was not designed to answer that question. Its
+largest dose was only four examples per emotion. We therefore froze a new
+[large-context preregistration](protocol/EMOTION_LARGE_CONTEXT_PREREGISTRATION.md)
+before making another live call. It uses the same pinned Emotion revision and
+the same six-way question, but moves to the untouched 2,000-item official
+**validation** split. The earlier test split plays no role in this score.
+
+Each of five nested training draws supplies 0, 1, 4, 16, or 64 examples per
+emotion: **0, 6, 24, 96, or 384 total demonstrations**. The examples retain
+the same canonical label order in every condition. The primary comparison is
+zero-shot versus 384-shot and the primary metric is macro-F1, because the
+Emotion labels are imbalanced. This is deliberately a dose-response study, not
+an attempt to find a single favorable prompt.
+
+We evaluated all 42,000 planned scoreboard records with `jev-1.13.0`. Forty-
+two records had an identical state/question fingerprint to another record, so
+the cache made **41,958 distinct model calls** and expanded each cached answer
+back to every preselected scoreboard item for analysis. No text is stored in
+the published artifact.
+
+| Demonstrations | Accuracy | Macro-F1 | Brier score |
+| --- | ---: | ---: | ---: |
+| 0 | 58.85% | .515 | .664 |
+| 6 (five-draw mean) | 58.72% | .530 | .640 |
+| 24 (five-draw mean) | 59.91% | .542 | .618 |
+| 96 (five-draw mean) | 62.18% | .577 | .580 |
+| 384 (five-draw mean) | 65.74% | .614 | .523 |
+
+The primary 384-shot-versus-zero-shot macro-F1 difference is **+9.89 points**.
+Its preregistered target-and-draw hierarchical bootstrap 95% interval is
+**+7.62 to +12.26 points**. Accuracy also rose by 6.89 points on the same
+scoreboard, and probability quality improved substantially. Unlike the
+small-context primary comparisons, this is strong evidence that this large,
+fixed set of correctly labelled examples can steer Jev toward the Emotion
+ground-truth boundary.
+
+It is not evidence that every large example set works, that the effect is
+linear on every task, or that the examples' **order** is irrelevant. At 384
+examples, the five fixed draws ranged from .608 to .627 macro-F1. The next
+study should therefore hold the target set and selected examples fixed and vary
+only presentation order. It belongs before comparing Jev with other models:
+otherwise a cross-model result could accidentally be an order effect in
+disguise. The [large-context aggregate](results/emotion_large_context_summary.json)
+contains the per-draw, pooled, calibration, latency, and token summaries.
 
 ## Reproduce the investigation
 

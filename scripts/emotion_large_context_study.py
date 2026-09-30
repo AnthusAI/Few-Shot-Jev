@@ -13,7 +13,7 @@ import json
 import math
 import random
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from datasets import load_dataset
@@ -86,6 +86,27 @@ def read_cache() -> dict[str, dict]:
     return {row["fingerprint"]: row for row in rows if row.get("prediction") in LABELS}
 
 
+def scored_rows() -> tuple[list[dict], int]:
+    """Expand a cached decision to every scoreboard record with that exact state.
+
+    A handful of validation texts are byte-for-byte identical.  They share a
+    complete state/question fingerprint and therefore correctly share one
+    model call, but each remains a separate, preselected scoreboard item.
+    """
+    train, scoreboard = load_rows()
+    cache = read_cache()
+    output, required = [], set()
+    for shots, seed, target, examples in plan(scoreboard, draws(train)):
+        key = digest({"state": state(target, examples), "question": QUESTION})
+        required.add(key)
+        if key not in cache:
+            raise SystemExit(f"Missing cached response for {target['id']} ({shots} shots).")
+        row = dict(cache[key])
+        row.update({"target_id": target["id"], "actual": target["label"], "shots": shots, "draw_seed": seed})
+        output.append(row)
+    return output, len(required)
+
+
 def reliability(rows: list[dict], bins: int = 10) -> list[dict]:
     output = []
     for index in range(bins):
@@ -131,24 +152,49 @@ def bootstrap_macro_f1(zero_rows: list[dict], many_rows: list[dict], resamples: 
     for row in many_rows:
         by_draw[int(row["draw_seed"])][row["target_id"]] = row
     draw_ids, target_ids = sorted(by_draw), sorted(set(zero).intersection(*(set(x) for x in by_draw.values())))
-    def delta(draws_, targets_):
-        few = [by_draw[d][t] for d in draws_ for t in targets_]
-        base = [zero[t] for _ in draws_ for t in targets_]
-        return metrics(few)["macro_f1"] - metrics(base)["macro_f1"]
-    estimate = delta(draw_ids, target_ids)
+    label_index = {label: index for index, label in enumerate(LABELS)}
+    actual = [label_index[zero[target]["actual"]] for target in target_ids]
+    zero_prediction = [label_index[zero[target]["prediction"]] for target in target_ids]
+    few_prediction = {draw: [label_index[by_draw[draw][target]["prediction"]] for target in target_ids]
+                      for draw in draw_ids}
+
+    def macro_from_matrix(matrix: list[list[int]]) -> float:
+        f1s = []
+        for label in range(len(LABELS)):
+            tp = matrix[label][label]
+            fp = sum(matrix[row][label] for row in range(len(LABELS)) if row != label)
+            fn = sum(matrix[label][column] for column in range(len(LABELS)) if column != label)
+            f1s.append(2 * tp / (2 * tp + fp + fn) if 2 * tp + fp + fn else 0.0)
+        return sum(f1s) / len(f1s)
+
+    def delta(draw_counts: Counter, target_counts: Counter) -> float:
+        baseline = [[0] * len(LABELS) for _ in LABELS]
+        few = [[0] * len(LABELS) for _ in LABELS]
+        for target_index, repetitions in target_counts.items():
+            baseline[actual[target_index]][zero_prediction[target_index]] += repetitions
+        for draw, draw_repetitions in draw_counts.items():
+            predictions = few_prediction[draw]
+            for target_index, repetitions in target_counts.items():
+                few[actual[target_index]][predictions[target_index]] += draw_repetitions * repetitions
+        return macro_from_matrix(few) - macro_from_matrix(baseline)
+
+    estimate = delta(Counter(draw_ids), Counter(range(len(target_ids))))
     rng = random.Random(seed)
-    values = sorted(delta([rng.choice(draw_ids) for _ in draw_ids], [rng.choice(target_ids) for _ in target_ids])
+    values = sorted(delta(Counter(rng.choice(draw_ids) for _ in draw_ids),
+                          Counter(rng.randrange(len(target_ids)) for _ in target_ids))
                     for _ in range(resamples))
     return {"estimate": estimate, "low": values[int(.025 * resamples)], "high": values[int(.975 * resamples)],
             "resamples": resamples, "seed": seed}
 
 
 def report() -> None:
-    rows = list(read_cache().values())
+    rows, unique_model_states = scored_rows()
     by_condition: dict[int, list[dict]] = defaultdict(list)
     for row in rows: by_condition[int(row["shots"])] .append(row)
     output = {"dataset": "dair-ai/emotion", "dataset_revision": REVISION, "scoreboard_split": "validation",
-              "scoreboard_n": 2000, "labels": LABELS, "conditions": {}, "primary": {"baseline_shots": 0, "many_shots": 384, "metric": "macro_f1"}}
+              "scoreboard_n": 2000, "labels": LABELS, "analysis_records": len(rows),
+              "unique_model_states": unique_model_states, "conditions": {},
+              "primary": {"baseline_shots": 0, "many_shots": 384, "metric": "macro_f1"}}
     for shots in sorted(by_condition):
         condition = by_condition[shots]
         if shots == 0:
