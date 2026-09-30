@@ -160,6 +160,72 @@ otherwise a cross-model result could accidentally be an order effect in
 disguise. The [large-context aggregate](results/emotion_large_context_summary.json)
 contains the per-draw, pooled, calibration, latency, and token summaries.
 
+## Lab note: does choosing examples beat simply adding them?
+
+This is the right next question, but it needs a careful reading of the result
+above. We have evidence that **quantity matters**: moving from zero examples
+to 384 examples improved the preregistered primary macro-F1 result by 9.89
+points. We also have evidence that **which fixed set is used matters**: the
+five 384-example draws range from .608 to .627 macro-F1. What we do *not* yet
+have is a variance decomposition or a direct contest showing that example
+selection is more important than example count. Saying that now would overread
+five random draws.
+
+There are two distinct questions worth separating:
+
+1. **Global prompt selection.** Can a fixed, carefully selected 96- or
+   384-example set outperform a random stratified set of the same size?
+2. **Target-specific retrieval.** Given an unlabeled target article, does
+   selecting semantically relevant training examples for that particular target
+   outperform a fixed, class-balanced context at the same token budget?
+
+A useful confirmatory study would reserve three disjoint partitions before any
+selection: a training **candidate pool**, a labeled **selector-development**
+set, and a final untouched **scoreboard**. The selector may search candidate
+sets and score them only on the development set. It must then freeze one set
+and face the scoreboard once. The target-specific selector may look at a target
+article's text but never its label; its nearest-neighbor index is built only
+from the candidate pool. This separation is what distinguishes an optimizer
+from quietly tuning on the answer key.
+
+At each fixed budget (for example 24, 96, and 384 demonstrations), the
+scoreboard should compare:
+
+| Method | What changes | Why it is informative |
+| --- | --- | --- |
+| Random, class-balanced draws | Demonstrations only | Estimates ordinary prompt-set variation. |
+| Prototype/diversity selection | Demonstrations only | Tests whether representative examples beat arbitrary ones. |
+| Per-label nearest-neighbor retrieval | Demonstrations depend on target text | Tests local, target-specific relevance while retaining label coverage. |
+| Development-selected global set | One frozen set chosen using only development labels | Tests optimization without contaminating the final scoreboard. |
+
+Each method needs multiple seeds where it contains randomness, the same prompt
+wording and label order, matched example counts, and the same held-out targets.
+Macro-F1 remains the primary score for Emotion; paired differences and a
+bootstrap that resamples targets *and selection runs* quantify whether an
+apparent winning selector is stable. An ordering-sensitivity arm should hold a
+selected set fixed and permute only its order. It is still important: a method
+that "selects" examples but wins only by always placing one label last has not
+learned useful relevance.
+
+DSPy supplies useful names for parts of this design, but it is not an automatic
+drop-in conclusion for Jev. Its documented `LabeledFewShot` samples labeled
+demos, `KNNFewShot` retrieves nearest training examples per input, and its
+other optimizers can jointly alter demonstrations and instructions. That last
+behavior would confound this experiment: we want to isolate example selection,
+not let an optimizer rewrite the task. Jev also exposes a structured decision
+API rather than the generative language-model interface DSPy expects, so an
+adapter would need to be deliberately implemented and validated. The clean
+first study is therefore a small native selector in this repository—random,
+prototype, and retrieval baselines—then, if useful, a DSPy adapter that is
+tested to send the identical Jev question and state shape. See DSPy's
+[optimizer overview](https://dspy.ai/3.2.0/learn/optimization/optimizers/) and
+[KNNFewShot API](https://dspy.ai/3.0.2/api/optimizers/KNNFewShot/) for the
+corresponding LLM-side mechanisms.
+
+This note is a proposed experiment, not a result. We should freeze its split,
+budget, selection candidates, and primary contrast before sending another live
+request.
+
 ## Reproduce the investigation
 
 The tests use only local synthetic data and a fake client; they make no network or model calls.
